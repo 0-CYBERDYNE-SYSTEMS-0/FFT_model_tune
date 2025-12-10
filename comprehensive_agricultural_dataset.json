@@ -138,5 +138,15 @@
     "instruction": "How can a small-scale organic vegetable farm in California's Central Valley optimize drip irrigation to conserve water during extreme drought while maintaining crop yields?",
     "input": "",
     "output": "Install pressure-compensating drip emitters with 0.5 GPH flow rates spaced every 12 inches along lateral lines, paired with soil moisture sensors (like the Sentek Drill & Drop) at 6\" and 18\" depths. Schedule irrigation in 15-minute pulses at dawn when VPD is lowest, using an OpenSprinkler controller programmed via REST API to automatically adjust based on sensor data and NOAA ET forecasts. Mulch with 3 inches of composted almond hulls to reduce evaporation by 30-40%."
+  },
+  {
+    "instruction": "How should I prepare heavy clay soil for planting fruit trees while minimizing soil disturbance?",
+    "input": "",
+    "output": "Start by conducting a soil test to determine pH and nutrient levels. To improve drainage and structure without deep tillage, apply 3-4 inches of compost mixed with gypsum (10 lbs per 100 sq ft) on the surface, then use a broadfork to gently aerate the top 12 inches. For pH adjustment, incorporate elemental sulfur (5 lbs per 100 sq ft for each full pH point reduction needed) 3 months before planting. This builds soil biology while avoiding compaction from heavy equipment."
+  },
+  {
+    "instruction": "How can I identify and organically control squash vine borers in my heirloom pumpkin patch without using synthetic pesticides?",
+    "input": "",
+    "output": "Look for sawdust-like frass at plant bases and sudden wilting as signs of infestation. Wrap lower stems with aluminum foil or nylon stockings as physical barriers, and apply beneficial nematodes (Steinernema carpocapsae) to soil to target larvae. For severe cases, perform \"surgery\" by making a vertical slit in affected vines to remove borers, then bury the wounded section in moist soil to encourage rerooting."
   }
 ]

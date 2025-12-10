@@ -352,7 +352,10 @@ Generate only ONE question-answer pair. Be specific and practical."""
                 generated += 1
                 
                 if verbose:
-                    print(f"OK - {qa_pair['instruction'][:50]}...")
+                    print(f"OK")
+                    print(f"    Q: {qa_pair['instruction']}")
+                    print(f"    A: {qa_pair['output']}")
+                    print()
                 
                 time.sleep(0.1)
                 
