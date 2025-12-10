@@ -1,0 +1,25 @@
+# Virtual environments
+venv/
+.venv/
+
+# Environment variables (contains API keys)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Models (too large for git)
+models/
+
+# Generated files
+dataset_index.pkl
+*.pkl
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,9 @@
+[33m⚠️  Warning: 'huggingface-cli download' is deprecated. Use 'hf download' instead.[0m
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Downloading 'model-00002-of-00003.safetensors' to 'models/trinity-nano-preview-complete/.cache/huggingface/download/D5-QTaCbl9VUFv9Wr0C28eFewRc=.a7111078fb9a6a573d59a233e2508b5a07cf3ee52b1300e54925c7fdaa7aa9fe.incomplete' (resume from 805914194/5001006952)
+Downloading 'model-00003-of-00003.safetensors' to 'models/trinity-nano-preview-complete/.cache/huggingface/download/NmVQgThqhsRkG2FlXLh-M51MilA=.3f64aad046fc1455143f33b73f1c8e9bf5757a26fb04feee9fb0e83d39a0373a.incomplete' (resume from 1073741824/2240788480)
+Downloading 'model-00001-of-00003.safetensors' to 'models/trinity-nano-preview-complete/.cache/huggingface/download/Y6g195DXbsCiN_Ka1NwH6jyLkvc=.a7d1f9b8c6cfbd5125a1d3a18126f9d7265df41f7024f6ab66ea2aa6146bde8e.incomplete' (resume from 2147483648/5000898920)
+Download complete. Moving file to models/trinity-nano-preview-complete/model-00003-of-00003.safetensors
+Download complete. Moving file to models/trinity-nano-preview-complete/model-00002-of-00003.safetensors
+Download complete. Moving file to models/trinity-nano-preview-complete/model-00001-of-00003.safetensors
+Fetching 14 files:  50%|█████     | 7/14 [32:51<32:51, 281.70s/it]Fetching 14 files: 100%|██████████| 14/14 [32:51<00:00, 140.85s/it]
+/Users/scrimwiggins/trin_train/models/trinity-nano-preview-complete

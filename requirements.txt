@@ -1,0 +1,16 @@
+# Core ML
+torch>=2.0
+transformers>=4.40
+peft>=0.10
+datasets>=2.18
+accelerate>=0.28
+huggingface-hub>=0.20
+
+# Synthetic data generation
+datasketch>=1.6
+python-dotenv>=1.0
+requests>=2.31
+
+# MLX (Apple Silicon) - optional
+mlx>=0.20
+mlx-lm>=0.10

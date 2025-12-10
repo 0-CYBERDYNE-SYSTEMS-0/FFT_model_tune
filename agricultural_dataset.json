@@ -1,0 +1,52 @@
+[
+  {
+    "instruction": "What are the early signs of wheat rust disease?",
+    "input": "",
+    "output": "Wheat rust disease shows several early warning signs: 1) Small orange or reddish-brown pustules on leaves, stems, and heads 2) Yellow halos around the pustules 3) Premature leaf death starting from the bottom 4) Reduced plant vigor and stunted growth 5) In severe cases, black teliospores appear on mature plants. Early detection and fungicide application can prevent significant yield losses."
+  },
+  {
+    "instruction": "How often should I water my tomato plants?",
+    "input": "",
+    "output": "Tomato plants need consistent watering 1-2 times per week depending on weather conditions. Deep watering once a week is better than shallow daily watering. Water at soil level, not overhead, to prevent disease. Aim for 1-1.5 inches of water per week. In hot, dry weather, increase to twice weekly. Check soil moisture by inserting your finger 1-2 inches deep - if dry, it's time to water."
+  },
+  {
+    "instruction": "What is the best soil pH for corn cultivation?",
+    "input": "",
+    "output": "Corn grows best in slightly acidic to neutral soil with a pH between 6.0-7.0. This pH range optimizes nutrient availability, especially nitrogen, phosphorus, and potassium. Test your soil pH using a soil test kit or send samples to your local agricultural extension office. If pH is below 5.5, apply lime. If above 7.5, consider sulfur amendments. Maintain pH through regular soil testing every 2-3 years."
+  },
+  {
+    "instruction": "How can I control aphids on my vegetable crops naturally?",
+    "input": "",
+    "output": "Natural aphid control methods include: 1) Introduce beneficial insects like ladybugs, lacewings, and parasitic wasps 2) Spray strong water jet to dislodge aphids 3) Use insecticidal soap or neem oil sprays 4) Plant companion plants like dill, fennel, or nasturtiums 5) Encourage bird habitat with bird baths and feeders 6) Remove heavily infested plant parts 7) Use reflective mulch or aluminum foil strips around plants. Monitor regularly and act early for best results."
+  },
+  {
+    "instruction": "When is the best time to harvest potatoes?",
+    "input": "",
+    "output": "Potato harvest timing depends on type and intended use: 1) New potatoes: 2-3 weeks after flowering when plants begin to die back 2) Main crop potatoes: Wait 2-3 weeks after complete vine death and yellowing 3) For winter storage: Wait until tops are completely dead and skin is set (doesn't rub off easily). Dig carefully to avoid bruising. Cure in cool, dark place for 1-2 weeks before storing at 35-40°F."
+  },
+  {
+    "instruction": "What are signs of nitrogen deficiency in plants?",
+    "input": "",
+    "output": "Nitrogen deficiency symptoms include: 1) Yellowing of older leaves first (older leaves sacrifice nitrogen for new growth) 2) Overall pale green or yellow plant appearance 3) Stunted growth and reduced leaf size 4) Premature leaf drop 5) Delayed maturity and poor fruit/seed development 6) Thinner plant stems. Apply nitrogen fertilizer (compost, fish emulsion, or balanced NPK) according to soil test recommendations and plant needs."
+  },
+  {
+    "instruction": "How do I prepare soil for planting vegetables?",
+    "input": "",
+    "output": "Proper soil preparation ensures healthy vegetable growth: 1) Test soil pH and nutrient levels 2) Remove weeds, rocks, and debris 3) Till or dig soil to 8-12 inches deep 4) Mix in 2-4 inches of compost or well-rotted manure 5) Add organic matter to improve soil structure 6) Rake level and create planting beds 7) Let soil settle for 1-2 weeks before planting. Add balanced fertilizer based on soil test recommendations."
+  },
+  {
+    "instruction": "What causes blossom end rot in tomatoes and how to prevent it?",
+    "input": "",
+    "output": "Blossom end rot is caused by calcium deficiency and irregular watering. Prevention methods: 1) Maintain consistent soil moisture - water deeply but less frequently 2) Mulch around plants to retain moisture 3) Avoid damaging roots during cultivation 4) Don't over-fertilize with nitrogen 5) Ensure soil pH is 6.0-6.8 6) Add calcium amendments if soil test indicates deficiency 7) Plant disease-resistant varieties. Once it occurs, remove affected fruits and focus on preventing new cases."
+  },
+  {
+    "instruction": "How can I improve soil drainage in my garden?",
+    "input": "",
+    "output": "Improve soil drainage by: 1) Adding organic matter like compost, aged manure, or peat moss 2) Creating raised beds 3) Installing French drains or gravel beds for severe problems 4) Choosing plants suited to your soil conditions 5) Avoiding overwatering 6) Using sand or perlite for heavy clay soils 7) Installing subsurface drainage systems if water table is high 8) Adding gypsum to clay soils to improve structure. Test drainage by digging holes and filling with water - good drainage empties in 24 hours."
+  },
+  {
+    "instruction": "What are integrated pest management strategies for organic farming?",
+    "input": "",
+    "output": "IPM for organic farming includes: 1) Prevention: Crop rotation, resistant varieties, proper spacing 2) Cultural practices: Clean cultivation, proper timing, sanitation 3) Biological control: Beneficial insects, birds, beneficial microorganisms 4) Physical barriers: Row covers, collars, traps 5) Organic-approved pesticides: Neem oil, insecticidal soap, Bt 6) Monitoring: Regular scouting, identification guides, threshold levels 7) Record keeping: Track pest populations, treatment effectiveness, weather conditions. Use least toxic methods first and monitor results."
+  }
+]

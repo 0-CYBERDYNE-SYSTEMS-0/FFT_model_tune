@@ -1,0 +1,26 @@
+[project]
+name = "trin-train"
+version = "0.1.0"
+description = "Fine-tune Trinity Nano on agricultural data"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "transformers>=4.40",
+    "peft>=0.10",
+    "datasets>=2.18",
+    "accelerate>=0.28",
+    "huggingface-hub>=0.20",
+    "datasketch>=1.6",
+    "python-dotenv>=1.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+mlx = [
+    "mlx>=0.20",
+    "mlx-lm>=0.10",
+]
+
+[tool.uv]
+dev-dependencies = []
