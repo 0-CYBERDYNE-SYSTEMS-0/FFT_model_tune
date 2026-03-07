@@ -1,10 +1,15 @@
 # Core ML
 torch>=2.0
-transformers>=4.40
+transformers>=5.0
 peft>=0.10
 datasets>=2.18
 accelerate>=0.28
 huggingface-hub>=0.20
+trl>=0.15
+
+# Unsloth - 2x faster training, 70% less VRAM
+unsloth>=2025.1
+unsloth_zoo>=2025.1
 
 # Synthetic data generation
 datasketch>=1.6

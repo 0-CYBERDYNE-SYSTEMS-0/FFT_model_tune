@@ -11,6 +11,15 @@ uv run python generate_dataset.py --provider openrouter --count 100
 # Fine-tune Trinity model with LoRA
 uv run python quick_train.py
 
+# Fine-tune Qwen3.5 models (0.8B, 2B, 4B, 9B) with Unsloth
+# Qwen3.5-0.8B: ~3GB VRAM (phones, edge devices)
+# Qwen3.5-2B: ~5GB VRAM (laptops, Raspberry Pi)
+# Qwen3.5-4B: ~10GB VRAM (recommended for most GPUs)
+# Qwen3.5-9B: ~22GB VRAM (RTX 4090, A100)
+uv run python train_qwen.py --model qwen3.5-4b --epochs 3 --batch_size 4
+uv run python train_qwen.py --model qwen3.5-2b --epochs 3 --batch_size 2
+uv run python train_qwen.py --model qwen3.5-9b --epochs 3 --batch_size 1
+
 # Test and analyze model performance
 uv run python test_and_analyze.py
 
@@ -43,7 +52,9 @@ uv run python test_and_analyze.py --question "What are sustainable farming pract
 - Memory-conscious defaults (batch_size=1 for Apple Silicon)
 
 ### Key Dependencies
-- PyTorch ≥2.0, Transformers ≥4.40, PEFT ≥0.10
+- PyTorch ≥2.0, Transformers ≥5.0 (required for Qwen3.5), PEFT ≥0.10
+- Unsloth ≥2025.1 (2x faster training, 70% less VRAM)
 - Apple MLX optional for M-series optimization
 - Environment variables in .env file
-- LoRA config: rank=16, alpha=32, lr=2e-4
+- LoRA config: rank=16, alpha=16, lr=2e-4
+- Note: Qwen3.5 uses bf16 LoRA (4-bit QLoRA not recommended)
