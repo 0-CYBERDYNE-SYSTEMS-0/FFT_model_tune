@@ -11,6 +11,11 @@ from datetime import datetime
 from pathlib import Path
 import subprocess
 
+# Import terminal UI utilities
+from utils.terminal_ui import (
+    spinner, timer, JSONFormatter, print_json_output
+)
+
 class ProjectManager:
     def __init__(self):
         self.project_root = Path("/Users/scrimwiggins/trin_train")
@@ -116,7 +121,7 @@ class ProjectManager:
                 self.tasks["download"]["status"] = "stalled"
     
     def create_progress_report(self):
-        """Generate comprehensive project report"""
+        """Generate comprehensive project report with JSON output"""
         print("🌾 Trinity 6B Agricultural Fine-tuning Project Dashboard")
         print("=" * 60)
         print(f"📅 Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -147,16 +152,46 @@ class ProjectManager:
             
             print(f"   {status_emoji} {task_name.replace('_', ' ').title()}: {task_info['status']} ({task_info['progress']}%)")
         
+        # Create JSON report data
+        report_data = {
+            "timestamp": datetime.now().isoformat(),
+            "project_status": {
+                "name": "Trinity Agricultural AI",
+                "location": str(self.project_root),
+                "overall_progress": sum(task['progress'] for task in self.tasks.values()) / len(self.tasks)
+            },
+            "tasks": self.tasks,
+            "model_status": {
+                "ready": model_ready,
+                "details": model_status,
+                "download_progress": download_progress
+            },
+            "system_resources": {},
+            "project_files": {}
+        }
+        
         # Next Steps
         print(f"\n🚀 Immediate Next Steps:")
         if not model_ready:
             print(f"   1. Monitor download progress")
             print(f"   2. Wait for model files to complete")
             print(f"   3. Run: python3 monitor_download.py --continuous")
+            
+            report_data["next_steps"] = [
+                "Monitor download progress",
+                "Wait for model files to complete", 
+                "Run: python3 monitor_download.py --continuous"
+            ]
         else:
             print(f"   1. Test base model: python3 test_and_analyze.py")
             print(f"   2. Run fine-tuning: python3 fine_tune_agricultural_complete.py")
             print(f"   3. Validate agricultural responses")
+            
+            report_data["next_steps"] = [
+                "Test base model: python3 test_and_analyze.py",
+                "Run fine-tuning: python3 fine_tune_agricultural_complete.py",
+                "Validate agricultural responses"
+            ]
         
         # Resource Usage
         print(f"\n💻 System Resources:")
@@ -170,13 +205,23 @@ class ProjectManager:
             ]
             print(f"   🔄 Active Downloads: {len(huggingface_processes)} processes")
             
+            process_info = []
             if huggingface_processes:
                 for process in huggingface_processes:
                     cpu_usage = process.split()[2] + "%"
+                    process_data = {
+                        "cpu_usage": cpu_usage,
+                        "command": " ".join(process.split()[10:]) if len(process.split()) > 10 else "Unknown"
+                    }
+                    process_info.append(process_data)
                     print(f"      CPU: {cpu_usage}")
+            
+            report_data["system_resources"]["active_downloads"] = len(huggingface_processes)
+            report_data["system_resources"]["processes"] = process_info
                     
         except Exception as e:
             print(f"   ⚠️ Could not check system resources: {e}")
+            report_data["system_resources"]["error"] = str(e)
         
         # Files Created
         print(f"\n📁 Project Files:")
@@ -188,13 +233,21 @@ class ProjectManager:
             "README_setup.md"
         ]
         
+        file_status = {}
         for file_name in important_files:
             file_path = self.project_root / file_name
             if file_path.exists():
                 size = file_path.stat().st_size / 1024
                 print(f"   ✅ {file_name} ({size:.1f} KB)")
+                file_status[file_name] = {"status": "exists", "size_kb": round(size, 1)}
             else:
                 print(f"   ❌ {file_name} (missing)")
+                file_status[file_name] = {"status": "missing"}
+        
+        report_data["project_files"] = file_status
+        
+        # Print JSON report
+        print_json_output(report_data, "Project Status Report")
     
     def monitor_download_continuous(self, interval=30, max_iterations=100):
         """Monitor download with continuous updates"""

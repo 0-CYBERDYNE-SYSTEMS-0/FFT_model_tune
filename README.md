@@ -113,10 +113,10 @@ python generate_dataset.py --count 100 --quiet
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--provider` | `openrouter` | `openrouter` (API) or `local` (Trinity) |
-| `--model` | `deepseek/deepseek-chat-v3-0324` | OpenRouter model ID |
+| `--model` | `deepseek/deepseek-v3.2` | OpenRouter model ID |
 | `--count` | `10` | Number of Q&A pairs to generate |
 | `--threshold` | `0.7` | MinHash similarity threshold (0.0-1.0) |
-| `--output` | `comprehensive_agricultural_dataset.json` | Output file path |
+| `--output` | `consolidated_agricultural_dataset.json` | Output file path |
 | `--quiet` | `false` | Suppress verbose output |
 
 ### Categories Generated

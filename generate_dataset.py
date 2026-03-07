@@ -6,6 +6,7 @@ Uses MinHash LSH for efficient deduplication
 """
 
 import os
+import sys
 import json
 import argparse
 import pickle
@@ -14,9 +15,16 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
+from datetime import datetime
 
 from datasketch import MinHash, MinHashLSH
 from dotenv import load_dotenv
+
+# Import terminal UI utilities
+from utils.terminal_ui import (
+    spinner, timer, JSONFormatter, create_json_system_message, 
+    track_generation_progress, print_json_output, truncate_text
+)
 
 load_dotenv()
 
@@ -138,7 +146,7 @@ class LocalProvider(Provider):
 class OpenRouterProvider(Provider):
     """Uses DeepSeek V3 via OpenRouter API"""
     
-    def __init__(self, model: str = "deepseek/deepseek-chat-v3-0324"):
+    def __init__(self, model: str = "deepseek/deepseek-v3.2"):
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
         self.model = model
@@ -157,30 +165,11 @@ class OpenRouterProvider(Provider):
         }
         
         data = {
-            "model": self.model,
+            "model": "deepseek/deepseek-v3.2",  # Exact model as requested
             "messages": [
                 {
                     "role": "system",
-                    "content": """You are an expert agricultural advisor, farm tech specialist, and synthetic dataset architect. Your goal is to generate Q&A pairs that will create a paradigm-shifting agricultural AI model.
-
-Principles:
-- Cover the FULL spectrum: ancient indigenous wisdom to bleeding-edge AgTech
-- Include agentic capabilities: bash commands, hardware interaction, API usage, troubleshooting
-- Span all scales: backyard garden to 10,000-acre operations
-- Address real challenges: emergencies, compliance, business decisions, tech debugging
-- Knowledge domains:
-  * Traditional/regenerative methods (companion planting, lunar cycles, permaculture)
-  * Modern agronomy (soil science, IPM, irrigation engineering)
-  * Farm technology (IoT sensors, drones, robotics, GPS guidance)
-  * Edge computing (Raspberry Pi, Arduino, MQTT, LoRaWAN, bash scripting)
-  * AI-assisted farming (chatbots, computer vision, predictive analytics)
-  * Business & compliance (markets, grants, organic certification, regulations)
-  * Crisis management (disease outbreaks, equipment failure, weather emergencies)
-- Ensure factual accuracy and actionable advice
-- Each example must be unique - vary difficulty, region, crop, scale, and tech level
-- Fill gaps: edge cases, uncommon scenarios, emerging tech, forgotten wisdom
-
-Never ever start your replies with "OK" or any preamble. Output only the Q&A pair."""
+                    "content": create_json_system_message()
                 },
                 {
                     "role": "user", 
@@ -191,11 +180,19 @@ Never ever start your replies with "OK" or any preamble. Output only the Q&A pai
             "max_tokens": 400
         }
         
-        response = requests.post(self.base_url, headers=headers, json=data, timeout=30)
-        response.raise_for_status()
-        
-        result = response.json()
-        return result["choices"][0]["message"]["content"].strip()
+        try:
+            response = requests.post(self.base_url, headers=headers, json=data, timeout=60)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result["choices"][0]["message"]["content"].strip()
+            
+        except requests.exceptions.Timeout:
+            raise Exception(f"API timeout after 60 seconds for model deepseek/deepseek-v3.2")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"API request failed: {str(e)}")
+        except KeyError as e:
+            raise Exception(f"Invalid API response format: {str(e)}")
 
 
 class MinHashDeduplicator:
@@ -238,12 +235,20 @@ class MinHashDeduplicator:
         with open(dataset_path, 'r') as f:
             data = json.load(f)
         
+        # Handle both old format (direct array) and new consolidated format
+        if isinstance(data, dict) and 'data' in data:
+            items = data['data']
+        else:
+            # Legacy format - direct array
+            items = data
+        
         count = 0
-        for item in data:
-            question = item.get("instruction", "")
-            if question and not self.is_duplicate(question):
-                self.add_question(question)
-                count += 1
+        for item in items:
+            if isinstance(item, dict):
+                question = item.get("instruction", "")
+                if question and not self.is_duplicate(question):
+                    self.add_question(question)
+                    count += 1
         
         return count
     
@@ -266,7 +271,7 @@ class DatasetGenerator:
         self,
         provider: Provider,
         deduplicator: MinHashDeduplicator,
-        output_path: str = "comprehensive_agricultural_dataset.json"
+        output_path: str = "consolidated_agricultural_dataset.json"
     ):
         self.provider = provider
         self.deduplicator = deduplicator
@@ -278,8 +283,16 @@ class DatasetGenerator:
         """Load existing dataset if it exists"""
         if Path(self.output_path).exists():
             with open(self.output_path, 'r') as f:
-                self.dataset = json.load(f)
-            print(f"Loaded {len(self.dataset)} existing examples")
+                data = json.load(f)
+            
+            # Handle both old format (direct array) and new consolidated format
+            if isinstance(data, dict) and 'data' in data:
+                self.dataset = data['data']
+                print(f"Loaded {len(self.dataset)} existing examples from consolidated dataset")
+            else:
+                # Legacy format - direct array
+                self.dataset = data
+                print(f"Loaded {len(self.dataset)} existing examples from legacy dataset")
             
             loaded = self.deduplicator.load_existing(self.output_path)
             print(f"Indexed {loaded} questions for deduplication")
@@ -319,57 +332,145 @@ Generate only ONE question-answer pair. Be specific and practical."""
         return None
     
     def generate_batch(self, count: int, verbose: bool = True):
-        """Generate a batch of Q&A pairs"""
+        """Generate a batch of Q&A pairs with progress tracking"""
         generated = 0
         attempts = 0
         max_attempts = count * 3
         
-        while generated < count and attempts < max_attempts:
-            attempts += 1
-            category = self._get_next_category()
-            prompt = self._build_prompt(category)
-            
-            try:
-                if verbose:
-                    print(f"[{generated+1}/{count}] Generating {category}...", end=" ")
-                
-                response = self.provider.generate(prompt)
-                qa_pair = self._parse_response(response)
-                
-                if qa_pair is None:
-                    if verbose:
-                        print("(parse failed)")
-                    continue
-                
-                if self.deduplicator.is_duplicate(qa_pair["instruction"]):
-                    if verbose:
-                        print("(duplicate)")
-                    continue
-                
-                self.deduplicator.add_question(qa_pair["instruction"])
-                self.dataset.append(qa_pair)
-                self.category_counts[category] += 1
-                generated += 1
-                
-                if verbose:
-                    print(f"OK")
-                    print(f"    Q: {qa_pair['instruction']}")
-                    print(f"    A: {qa_pair['output']}")
-                    print()
-                
-                time.sleep(0.1)
-                
-            except Exception as e:
-                if verbose:
-                    print(f"(error: {e})")
-                time.sleep(1)
+        with timer() as t:
+            with spinner(f"Generating {count} agricultural Q&A pairs"):
+                while generated < count and attempts < max_attempts:
+                    attempts += 1
+                    category = self._get_next_category()
+                    prompt = self._build_prompt(category)
+                    
+                    try:
+                        if verbose:
+                            # Use stderr for verbose output to avoid interfering with spinner
+                            sys.stderr.write(f"\r[{generated+1}/{count}] Generating {category}...")
+                            sys.stderr.flush()
+                        
+                        # Retry logic for API failures
+                        max_retries = 3
+                        for retry in range(max_retries):
+                            try:
+                                response = self.provider.generate(prompt)
+                                break
+                            except Exception as api_error:
+                                if retry < max_retries - 1:
+                                    if verbose:
+                                        sys.stderr.write(f"\n(retry {retry+1}/{max_retries}...)")
+                                        sys.stderr.flush()
+                                    time.sleep(2)  # Wait before retry
+                                    continue
+                                else:
+                                    raise api_error
+                        
+                        qa_pair = self._parse_response(response)
+                        
+                        if qa_pair is None:
+                            if verbose:
+                                sys.stderr.write("\n(parse failed)\n")
+                                sys.stderr.flush()
+                            continue
+                        
+                        if self.deduplicator.is_duplicate(qa_pair["instruction"]):
+                            if verbose:
+                                sys.stderr.write("\n(duplicate)\n")
+                                sys.stderr.flush()
+                            continue
+                        
+                        self.deduplicator.add_question(qa_pair["instruction"])
+                        self.dataset.append(qa_pair)
+                        self.category_counts[category] += 1
+                        generated += 1
+                        
+                        # Track progress with JSON output
+                        track_generation_progress(generated, count, category)
+                        
+                        # Print detailed JSON status every 10 items
+                        if generated % 10 == 0:
+                            stats = {
+                                "total_samples": len(self.dataset),
+                                "categories_completed": sum(1 for v in self.category_counts.values() if v > 0),
+                                "total_categories": len(AGRICULTURAL_CATEGORIES),
+                                "current_category": category,
+                                "generation_rate": f"{generated/t.elapsed:.2f} items/min" if t.elapsed > 0 else "calculating..."
+                            }
+                            
+                            progress_data = {
+                                "current": generated,
+                                "total": count,
+                                "percentage": (generated / count) * 100
+                            }
+                            
+                            json_output = JSONFormatter.format_dataset_generation(
+                                category=category,
+                                progress=progress_data,
+                                stats=stats
+                            )
+                            
+                            print_json_output(json_output, f"Generation Progress Update")
+                        
+                        if verbose:
+                            # Use stderr for all verbose output to avoid interfering with spinner
+                            sys.stderr.write("\nOK\n")
+                            # Truncate Q&A for better readability
+                            truncated_q = truncate_text(qa_pair['instruction'], max_length=80)
+                            truncated_a = truncate_text(qa_pair['output'], max_length=120)
+                            sys.stderr.write(f"    Q: {truncated_q}\n")
+                            sys.stderr.write(f"    A: {truncated_a}\n\n")
+                            sys.stderr.flush()
+                        
+                        time.sleep(0.1)
+                        
+                    except Exception as e:
+                        if verbose:
+                            sys.stderr.write(f"\n(error: {e})\n")
+                            sys.stderr.flush()
+                        
+                        # Format error as JSON for tracking
+                        error_data = JSONFormatter.format_error(e, f"generation_{category}")
+                        if generated % 5 == 0:  # Print errors every 5 attempts
+                            print_json_output(error_data, "Generation Error")
+                        
+                        time.sleep(1)
+        
+        # Final progress update
+        final_stats = {
+            "total_samples": len(self.dataset),
+            "categories_completed": sum(1 for v in self.category_counts.values() if v > 0),
+            "total_categories": len(AGRICULTURAL_CATEGORIES),
+            "generation_rate": f"{generated/t.duration:.2f} items/min" if t.duration > 0 else "calculating...",
+            "completion_time": t.format_duration()
+        }
+        
+        final_json = JSONFormatter.format_dataset_generation(
+            category="completed",
+            progress={"current": generated, "total": count, "percentage": 100.0},
+            stats=final_stats
+        )
+        
+        print_json_output(final_json, "Dataset Generation Complete")
         
         return generated
     
     def save_dataset(self):
-        """Save dataset to JSON file"""
+        """Save dataset to JSON file in consolidated format"""
+        # Create consolidated format with metadata
+        output_data = {
+            "metadata": {
+                "last_updated": datetime.now().isoformat(),
+                "total_entries": len(self.dataset),
+                "format": "instruction_input_output",
+                "generator_version": "2.0",
+                "description": "Agricultural Q&A dataset with enhanced formatting"
+            },
+            "data": self.dataset
+        }
+        
         with open(self.output_path, 'w') as f:
-            json.dump(self.dataset, f, indent=2)
+            json.dump(output_data, f, indent=2)
         print(f"Saved {len(self.dataset)} examples to {self.output_path}")
         
         self.deduplicator.save_index()
@@ -387,8 +488,8 @@ def main():
     )
     parser.add_argument(
         "--model",
-        default="deepseek/deepseek-chat-v3-0324",
-        help="OpenRouter model to use (default: deepseek/deepseek-chat-v3-0324)"
+        default="deepseek/deepseek-v3.2",
+        help="OpenRouter model to use (default: deepseek/deepseek-v3.2)"
     )
     parser.add_argument(
         "--count",
@@ -404,7 +505,7 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="comprehensive_agricultural_dataset.json",
+        default="consolidated_agricultural_dataset.json",
         help="Output JSON file path"
     )
     parser.add_argument(

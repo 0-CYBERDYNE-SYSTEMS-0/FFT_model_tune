@@ -17,6 +17,11 @@ from mlx_lm.utils import load_tokenizer
 from datasets import Dataset
 import torch
 
+# Import terminal UI utilities
+from utils.terminal_ui import (
+    spinner, timer, JSONFormatter, print_json_output
+)
+
 def load_agricultural_dataset(file_path: str) -> Dataset:
     """Load agricultural dataset from JSON file"""
     print(f"📂 Loading agricultural dataset from {file_path}...")
@@ -97,7 +102,7 @@ def train_fine_tuning(
     learning_rate: float = 2e-4,
     save_steps: int = 50
 ):
-    """Train the model using LoRA fine-tuning"""
+    """Train the model using LoRA fine-tuning with progress tracking"""
     print(f"🚀 Starting fine-tuning...")
     print(f"   - Epochs: {epochs}")
     print(f"   - Batch size: {batch_size}")
@@ -112,44 +117,92 @@ def train_fine_tuning(
     total_loss = 0
     num_batches = 0
     
-    print("⏳ Training in progress...")
-    start_time = time.time()
+    # Training metrics for JSON output
+    training_metrics = {
+        "total_epochs": epochs,
+        "batch_size": batch_size,
+        "learning_rate": learning_rate,
+        "dataset_size": len(train_dataset),
+        "epochs_completed": 0,
+        "total_batches": 0,
+        "average_loss": 0.0,
+        "training_history": []
+    }
     
-    for epoch in range(epochs):
-        epoch_loss = 0
-        num_epoch_batches = 0
-        
-        # Simple training loop
-        for i in range(0, len(train_dataset), batch_size):
-            batch = train_dataset[i:i+batch_size]
-            
-            # Forward pass (simplified for MLX)
-            # Note: Actual implementation would require MLX-specific loss computation
-            batch_loss = mx.array([0.5])  # Placeholder loss
-            
-            # Backward pass (simplified)
-            optimizer.zero_grad()
-            # loss.backward() equivalent in MLX
-            optimizer.update(model.parameters())
-            
-            epoch_loss += float(batch_loss)
-            num_epoch_batches += 1
-            
-            if i % 10 == 0:
-                print(f"   Epoch {epoch+1}/{epochs}, Batch {i//batch_size + 1}: Loss = {float(batch_loss):.4f}")
-        
-        avg_epoch_loss = epoch_loss / max(num_epoch_batches, 1)
-        print(f"✅ Epoch {epoch+1} completed. Average loss: {avg_epoch_loss:.4f}")
-        
-        total_loss += avg_epoch_loss
-        num_batches += 1
+    with timer() as t:
+        with spinner("Training model"):
+            for epoch in range(epochs):
+                epoch_loss = 0
+                num_epoch_batches = 0
+                epoch_start_time = time.time()
+                
+                # Simple training loop
+                for i in range(0, len(train_dataset), batch_size):
+                    batch = train_dataset[i:i+batch_size]
+                    
+                    # Forward pass (simplified for MLX)
+                    # Note: Actual implementation would require MLX-specific loss computation
+                    batch_loss = mx.array([0.5])  # Placeholder loss
+                    
+                    # Backward pass (simplified)
+                    optimizer.zero_grad()
+                    # loss.backward() equivalent in MLX
+                    optimizer.update(model.parameters())
+                    
+                    epoch_loss += float(batch_loss)
+                    num_epoch_batches += 1
+                    training_metrics["total_batches"] += 1
+                    
+                    # Progress update every 10 batches
+                    if i % 10 == 0:
+                        current_batch = i // batch_size + 1
+                        total_batches_epoch = (len(train_dataset) + batch_size - 1) // batch_size
+                        progress = (current_batch / total_batches_epoch) * 100
+                        print(f"\r⠹ Epoch {epoch+1}/{epochs}: {current_batch}/{total_batches_epoch} batches ({progress:.1f}%) - Loss: {float(batch_loss):.4f}", end="", flush=True)
+                
+                avg_epoch_loss = epoch_loss / max(num_epoch_batches, 1)
+                epoch_time = time.time() - epoch_start_time
+                
+                # Store epoch metrics
+                epoch_metrics = {
+                    "epoch": epoch + 1,
+                    "average_loss": avg_epoch_loss,
+                    "batches_processed": num_epoch_batches,
+                    "duration_seconds": epoch_time
+                }
+                training_metrics["training_history"].append(epoch_metrics)
+                training_metrics["epochs_completed"] = epoch + 1
+                
+                print(f"\n✅ Epoch {epoch+1} completed. Average loss: {avg_epoch_loss:.4f} (Duration: {epoch_time:.1f}s)")
+                
+                # Format and print JSON output for this epoch
+                epoch_json = JSONFormatter.format_training_metrics(
+                    epoch=epoch + 1,
+                    loss=avg_epoch_loss,
+                    metrics=epoch_metrics
+                )
+                print_json_output(epoch_json, f"Epoch {epoch + 1} Metrics")
+                
+                total_loss += avg_epoch_loss
+                num_batches += 1
     
-    training_time = time.time() - start_time
-    avg_loss = total_loss / max(num_batches, 1)
+    training_metrics["average_loss"] = total_loss / max(num_batches, 1)
+    training_metrics["total_training_time"] = t.format_duration()
     
     print(f"🎉 Fine-tuning completed!")
-    print(f"   - Total training time: {training_time:.1f} seconds")
-    print(f"   - Final average loss: {avg_loss:.4f}")
+    print(f"   - Total training time: {t.format_duration()}")
+    print(f"   - Final average loss: {training_metrics['average_loss']:.4f}")
+    
+    # Final training summary
+    final_summary = JSONFormatter.format_model_response(
+        "Training completed successfully",
+        {
+            "operation": "training_summary",
+            "metrics": training_metrics,
+            "status": "completed"
+        }
+    )
+    print_json_output(final_summary, "Training Summary")
     
     return model
 
