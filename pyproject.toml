@@ -1,26 +1,44 @@
 [project]
-name = "trin-train"
-version = "0.1.0"
-description = "Fine-tune Trinity Nano on agricultural data"
+name = "fft-model-tune"
+version = "2.0.0"
+description = "Fine-tune small language models for agricultural AI — Qwen3.5, Gemma 4, and more"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "torch>=2.0",
-    "transformers>=4.40",
-    "peft>=0.10",
-    "datasets>=2.18",
-    "accelerate>=0.28",
-    "huggingface-hub>=0.20",
+    # ML Core
+    "torch>=2.4",
+    "transformers>=5.0",
+    "peft>=0.14",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "huggingface-hub>=0.26",
+
+    # Unsloth — 1.5-2x faster training, 50-80% less VRAM
+    "unsloth>=2025.5",
+    "unsloth_zoo>=2025.5",
+
+    # Training
+    "trl>=0.15",
+
+    # Synthetic data generation
     "datasketch>=1.6",
     "python-dotenv>=1.0",
     "requests>=2.31",
+
+    # GGUF export
+    "gguf>=0.10",
 ]
 
 [project.optional-dependencies]
 mlx = [
     "mlx>=0.20",
-    "mlx-lm>=0.10",
+    "mlx-lm>=0.20",
 ]
+
+[project.scripts]
+fft-train = "train:main"
+fft-generate = "generate_dataset:main"
+fft-evaluate = "evaluate:main"
 
 [tool.uv]
 dev-dependencies = []

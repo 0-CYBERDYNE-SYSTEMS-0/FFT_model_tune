@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 Synthetic Agricultural Dataset Generator
-Generates Q&A pairs using local Trinity model or OpenRouter API (DeepSeek V3)
-Uses MinHash LSH for efficient deduplication
+Generates Q&A pairs using OpenRouter API or local models.
+Uses MinHash LSH for efficient deduplication.
+
+Output formats:
+  standard     — instruction/input/output (universal, portable)
+  conversations — ShareGPT format with model-specific chat templates
 """
 
 import os
@@ -27,6 +31,13 @@ from utils.terminal_ui import (
 )
 
 load_dotenv()
+
+# Optional: import model configs for chat template support
+try:
+    from configs.models import format_conversation, ALL_MODELS
+    HAS_MODEL_CONFIGS = True
+except ImportError:
+    HAS_MODEL_CONFIGS = False
 
 AGRICULTURAL_CATEGORIES = [
     # Core Farming (12)
@@ -271,11 +282,15 @@ class DatasetGenerator:
         self,
         provider: Provider,
         deduplicator: MinHashDeduplicator,
-        output_path: str = "consolidated_agricultural_dataset.json"
+        output_path: str = "consolidated_agricultural_dataset.json",
+        output_format: str = "standard",   # "standard" | "conversations"
+        model_key: str = None,             # Model key for chat template (conversations only)
     ):
         self.provider = provider
         self.deduplicator = deduplicator
         self.output_path = output_path
+        self.output_format = output_format
+        self.model_key = model_key
         self.dataset = []
         self.category_counts = {cat: 0 for cat in AGRICULTURAL_CATEGORIES}
     
@@ -456,24 +471,69 @@ Generate only ONE question-answer pair. Be specific and practical."""
         return generated
     
     def save_dataset(self):
-        """Save dataset to JSON file in consolidated format"""
-        # Create consolidated format with metadata
+        """Save dataset to JSON file in standard or conversations format."""
+        if self.output_format == "conversations":
+            self._save_conversations()
+        else:
+            self._save_standard()
+        
+        self.deduplicator.save_index()
+
+    def _save_standard(self):
+        """Save in instruction/input/output format (universal, portable)."""
         output_data = {
             "metadata": {
                 "last_updated": datetime.now().isoformat(),
                 "total_entries": len(self.dataset),
                 "format": "instruction_input_output",
-                "generator_version": "2.0",
-                "description": "Agricultural Q&A dataset with enhanced formatting"
+                "generator_version": "3.0",
+                "description": "Agricultural Q&A dataset — instruction/input/output format"
             },
             "data": self.dataset
         }
         
         with open(self.output_path, 'w') as f:
             json.dump(output_data, f, indent=2)
-        print(f"Saved {len(self.dataset)} examples to {self.output_path}")
+        print(f"Saved {len(self.dataset)} examples to {self.output_path} (standard format)")
+
+    def _save_conversations(self):
+        """Save in ShareGPT conversations format with chat templates."""
+        conversations = []
+        for item in self.dataset:
+            instruction = item.get("instruction", "")
+            output = item.get("output", "")
+            
+            # Build messages array
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are an agricultural AI assistant. Provide accurate, practical farming advice."
+                },
+                {
+                    "role": "user",
+                    "content": instruction
+                },
+                {
+                    "role": "assistant",
+                    "content": output
+                }
+            ]
+            conversations.append({"messages": messages})
         
-        self.deduplicator.save_index()
+        output_data = {
+            "metadata": {
+                "last_updated": datetime.now().isoformat(),
+                "total_entries": len(conversations),
+                "format": "conversations",
+                "generator_version": "3.0",
+                "description": "Agricultural Q&A dataset — ShareGPT conversations format",
+            },
+            "data": conversations
+        }
+        
+        with open(self.output_path, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        print(f"Saved {len(conversations)} examples to {self.output_path} (conversations format)")
 
 
 def main():
@@ -509,6 +569,17 @@ def main():
         help="Output JSON file path"
     )
     parser.add_argument(
+        "--format",
+        choices=["standard", "conversations"],
+        default="standard",
+        help="Output format: standard (instruction/input/output) or conversations (ShareGPT) (default: standard)"
+    )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Target model for chat template (conversations format only, e.g. qwen3.5-4b)"
+    )
+    parser.add_argument(
         "--quiet",
         action="store_true",
         help="Suppress verbose output"
@@ -538,7 +609,9 @@ def main():
     generator = DatasetGenerator(
         provider=provider,
         deduplicator=deduplicator,
-        output_path=args.output
+        output_path=args.output,
+        output_format=args.format,
+        model_key=args.model,
     )
     
     generator.load_existing_dataset()

@@ -1,171 +1,151 @@
-# Trinity Nano Agricultural Fine-tuning
+# FFT Model Tune — Fine-tune Small LLMs for Agriculture
 
-Fine-tune Arcee Trinity Nano (6B MoE) on agricultural Q&A data using your Mac Mini M2 Pro (32GB).
+Fine-tune open-source language models on agricultural data using **Unsloth** — 1.5-2x faster training, 50-80% less VRAM.
 
-## Quick Start
+**Supported models:** Qwen3.5 (0.8B → 9B), Gemma 4 (E2B, E4B)
+
+---
+
+## Quickstart (3 commands)
 
 ```bash
-# 1. Install uv (one-time)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Setup and install (creates .venv automatically)
+# 1. Install dependencies
 uv sync
 
-# 3. Configure API key
-cp .env.example .env
-# Edit .env and add your OpenRouter API key
-
-# 4. Generate training data
+# 2. Generate training data (or use existing)
 uv run python generate_dataset.py --provider openrouter --count 100
 
-# 5. Fine-tune the model
-uv run python quick_train.py
+# 3. Train (auto-detects GPU, picks best model)
+uv run python train.py
 ```
 
-That's it! `uv sync` handles everything.
+That's it. Your fine-tuned agricultural AI model is in `models/<model>-agricultural/`.
 
 ---
 
-## Environment Setup
+## Which Model Should I Use?
 
-### Option 1: uv (Recommended - Fast & Simple)
+| Your Hardware | VRAM | Best Model | Why |
+|:---|:---|:---|:---|
+| Raspberry Pi 5 / Phone | 2-4GB | Qwen3.5 0.8B | Edge-optimized, 3GB bf16 |
+| Laptop GPU / M1 Mac | 4-8GB | Qwen3.5 2B or Gemma 4 E2B (4-bit) | Small but capable |
+| RTX 3060 / M2 Pro | 8-12GB | Qwen3.5 4B or Gemma 4 E4B | Sweet spot |
+| RTX 4090 / A100 | 16-24GB | Qwen3.5 9B | Most powerful small model |
 
+### Model Comparison
+
+| Model | VRAM (bf16) | VRAM (4-bit) | Speed | Quality | Best For |
+|:---|:---|:---|:---|:---|:---|
+| **Qwen3.5 0.8B** | 3GB | 2GB | ⚡⚡⚡ | ★★☆ | Phones, edge devices |
+| **Qwen3.5 2B** | 5GB | 3GB | ⚡⚡⚡ | ★★★ | Laptops, Raspberry Pi 5 |
+| **Qwen3.5 4B** | 10GB | 6GB | ⚡⚡ | ★★★★ | Recommended for most |
+| **Qwen3.5 9B** | 22GB | 12GB | ⚡ | ★★★★★ | Production/cloud |
+| **Gemma 4 E2B** | 12GB | 8GB | ⚡⚡ | ★★★★ | Vision + text, laptops |
+| **Gemma 4 E4B** | 16GB | 10GB | ⚡ | ★★★★★ | Vision + text, desktop |
+
+> **Qwen3.5 models:** Use bf16 LoRA (QLoRA not recommended for Qwen3.5)  
+> **Gemma 4 models:** 4-bit QLoRA works great — fits on smaller GPUs
+
+---
+
+## Commands
+
+### List available models
 ```bash
-# Install uv (if not installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+uv run python train.py --list-models
+```
 
-# Install all dependencies (creates .venv automatically)
-uv sync
+### Train a specific model
+```bash
+# Qwen3.5 4B (recommended for most GPUs)
+uv run python train.py --model qwen3.5-4b
 
-# Run any script
+# Qwen3.5 2B (good for laptops)
+uv run python train.py --model qwen3.5-2b
+
+# Gemma 4 E2B with 4-bit QLoRA (only 8GB VRAM!)
+uv run python train.py --model gemma4-e2b
+```
+
+### Train with custom settings
+```bash
+# More epochs, bigger batches
+uv run python train.py --model qwen3.5-4b --epochs 5 --batch-size 4
+
+# Custom dataset
+uv run python train.py --model qwen3.5-2b --dataset my_farm_data.json
+
+# Export GGUF for Ollama
+uv run python train.py --model qwen3.5-4b --export-gguf
+```
+
+### Generate dataset with conversations format
+```bash
+# Standard format (instruction/input/output) — most portable
 uv run python generate_dataset.py --count 100
-uv run python quick_train.py
 
-# Or activate the environment manually
-source .venv/bin/activate
-python generate_dataset.py --count 100
+# Conversations format (ShareGPT) — ready for chat models
+uv run python generate_dataset.py --count 100 --format conversations
+
+# Use a specific data source
+uv run python generate_dataset.py --provider openrouter --count 500
 ```
 
-### Option 2: pip + venv (Traditional)
-
+### Quick inference test (no training)
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Option 3: poetry
-
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-poetry install
-poetry shell
+uv run python train.py --model qwen3.5-4b --test-only
 ```
 
 ---
 
-## API Key Setup
+## Hardware Setup
 
-For synthetic dataset generation using DeepSeek V3 via OpenRouter:
-
-1. Get an API key from [OpenRouter](https://openrouter.ai/settings/keys)
-2. Copy the example env file:
-   ```bash
-   cp .env.example .env
-   ```
-3. Edit `.env` and add your key:
-   ```
-   OPENROUTER_API_KEY=sk-or-v1-your-key-here
-   ```
-
-**Cost estimate**: ~$0.0003 per Q&A pair (~$0.30 for 1,000 examples)
-
----
-
-## Synthetic Dataset Generation
-
-Generate agricultural Q&A training data using AI models.
-
-### Commands
-
+### Step 1: Install uv
 ```bash
-# Generate 100 Q&A pairs using OpenRouter (DeepSeek V3)
-python generate_dataset.py --provider openrouter --count 100
-
-# Generate using local Trinity model (free, slower)
-python generate_dataset.py --provider local --count 50
-
-# Use a different OpenRouter model
-python generate_dataset.py --provider openrouter --model deepseek/deepseek-chat-v3.1 --count 100
-
-# Custom output file
-python generate_dataset.py --count 100 --output my_dataset.json
-
-# Adjust deduplication sensitivity (lower = stricter)
-python generate_dataset.py --count 100 --threshold 0.5
-
-# Quiet mode (less output)
-python generate_dataset.py --count 100 --quiet
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### All Flags
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--provider` | `openrouter` | `openrouter` (API) or `local` (Trinity) |
-| `--model` | `deepseek/deepseek-v3.2` | OpenRouter model ID |
-| `--count` | `10` | Number of Q&A pairs to generate |
-| `--threshold` | `0.7` | MinHash similarity threshold (0.0-1.0) |
-| `--output` | `consolidated_agricultural_dataset.json` | Output file path |
-| `--quiet` | `false` | Suppress verbose output |
-
-### Categories Generated
-
-The generator balances across 12 agricultural categories:
-- soil_preparation
-- pest_control
-- irrigation
-- harvesting
-- nutrient_management
-- crop_diseases
-- planting_techniques
-- weather_adaptation
-- composting
-- seed_selection
-- weed_management
-- equipment_maintenance
-
----
-
-## Fine-tuning
-
-### Quick Training (LoRA)
-
+### Step 2: Install dependencies
 ```bash
-# Run fine-tuning with default settings
-python quick_train.py
+uv sync
 ```
 
-This uses:
-- LoRA (rank=16, alpha=32)
-- Batch size 1 with gradient accumulation of 4
-- 3 epochs
-- Learning rate 2e-4
+### Step 3: Set up API key (for dataset generation)
+```bash
+cp .env.example .env
+# Edit .env — add your OpenRouter key: OPENROUTER_API_KEY=sk-...
+```
 
-### Training Output
-
-Fine-tuned model saved to: `./fine_tuned_trinity_agricultural/`
+### Step 4: Verify GPU
+```bash
+uv run python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'MPS: {torch.backends.mps.is_available()}')"
+```
 
 ---
 
-## Model Download
+## Using with Ollama
 
-If the Trinity model isn't downloaded yet:
+After training with `--export-gguf`:
 
 ```bash
-# Download Trinity Nano Preview
-huggingface-cli download arcee-ai/Trinity-Nano-Preview \
-  --local-dir models/trinity-nano-preview-complete
+# 1. Find the GGUF file
+ls models/qwen3.5-4b-agricultural-gguf/
+
+# 2. Create a Modelfile
+cat > Modelfile << 'EOF'
+FROM ./models/qwen3.5-4b-agricultural-gguf/model-q4_k_m.gguf
+TEMPLATE """<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+"""
+SYSTEM """You are a farm AI assistant. Provide practical, science-based agricultural advice."""
+EOF
+
+# 3. Create and run
+ollama create farm-ai -f Modelfile
+ollama run farm-ai
 ```
 
 ---
@@ -173,86 +153,77 @@ huggingface-cli download arcee-ai/Trinity-Nano-Preview \
 ## File Structure
 
 ```
-trin_train/
-├── generate_dataset.py              # Synthetic data generator
-├── quick_train.py                   # LoRA fine-tuning script
-├── fine_tune_agricultural_complete.py  # Full training script (MLX)
-├── test_and_analyze.py              # Model testing
-├── comprehensive_agricultural_dataset.json  # Training data
-├── .env                             # API keys (create from .env.example)
-├── .env.example                     # API key template
-├── requirements.txt                 # Python dependencies
-├── models/
-│   └── trinity-nano-preview-complete/  # Downloaded model
-├── fine_tuned_trinity_agricultural/    # Output from training
-└── venv/                            # Virtual environment
+FFT_model_tune/
+├── train.py                    # Main training script (auto GPU + model detection)
+├── generate_dataset.py         # Synthetic data generator
+├── configs/
+│   └── models.py               # Model registry + chat templates + VRAM configs
+├── utils/
+│   └── terminal_ui.py          # Terminal UI utilities
+├── consolidated_agricultural_dataset.json  # Training data (407+ examples)
+├── pyproject.toml              # Dependencies (uv sync)
+├── .env.example                # API key template
+└── output/                     # Training outputs (gitignored)
+    └── models/                 # Fine-tuned models
 ```
 
 ---
 
-## Requirements
+## Dataset Format
 
-### Hardware
-- Mac Mini M2 Pro (32GB RAM) or equivalent
-- ~15GB disk space for model
-
-### Software
-- Python 3.10+
-- macOS 14+ (Sonoma) recommended
-
-### Dependencies
-
-Core packages (installed via requirements.txt):
+### Standard format (default, universal)
+```json
+{
+  "instruction": "How do I treat powdery mildew on squash?",
+  "input": "",
+  "output": "Powdery mildew treatment: 1) Remove infected leaves..."
+}
 ```
-torch>=2.0
-transformers>=4.40
-peft>=0.10
-datasets>=2.18
-accelerate>=0.28
-datasketch>=1.6
-python-dotenv>=1.0
-requests>=2.31
+The training script auto-converts this to the correct chat template for each model.
+
+### Conversations format (ShareGPT)
+```json
+{
+  "messages": [
+    {"role": "system", "content": "You are an agricultural AI assistant..."},
+    {"role": "user", "content": "How do I treat powdery mildew on squash?"},
+    {"role": "assistant", "content": "Powdery mildew treatment: 1) Remove infected leaves..."}
+  ]
+}
 ```
 
 ---
 
 ## Troubleshooting
 
-### "OPENROUTER_API_KEY not set"
+### Out of memory
 ```bash
-cp .env.example .env
-# Edit .env and add your API key from https://openrouter.ai/settings/keys
+# Force 4-bit loading
+uv run python train.py --model qwen3.5-9b --force-4bit
+
+# Use a smaller model
+uv run python train.py --model qwen3.5-2b
+
+# Reduce batch size
+uv run python train.py --model qwen3.5-4b --batch-size 1
 ```
 
-### "Local model not found"
+### Slow training on Apple Silicon
+- Training on MPS is slower than CUDA. Use a smaller model.
+- For M2/M3/M4: Qwen3.5 2B or 4B are good choices.
+- For M1: Stick with Qwen3.5 0.8B or 2B.
+
+### "transformers version too old"
 ```bash
-huggingface-cli download arcee-ai/Trinity-Nano-Preview \
-  --local-dir models/trinity-nano-preview-complete
+uv sync --upgrade
+# Unsloth bundles the right transformers version — uv sync handles it
 ```
-
-### Out of memory during training
-- Reduce batch size in `quick_train.py`
-- Close other applications
-- Use `--count` with smaller batches for data generation
-
-### Generation produces duplicates
-- Lower the threshold: `--threshold 0.5`
-- The MinHash index persists in `dataset_index.pkl`
-
----
-
-## Provider Comparison
-
-| Provider | Flag | Cost | Speed | Quality |
-|----------|------|------|-------|---------|
-| OpenRouter DeepSeek V3 | `--provider openrouter` | ~$0.0003/QA | ~1s/QA | Excellent |
-| Local Trinity Nano | `--provider local` | Free | ~5-10s/QA | Good |
-
-**Recommendation**: Use OpenRouter for initial high-quality dataset generation, then optionally expand with local model after fine-tuning.
 
 ---
 
 ## License
 
-- Trinity Nano: Apache 2.0
 - This project: MIT
+- Qwen3.5 models: Apache 2.0
+- Gemma 4 models: Google Gemma License
+- Unsloth Core: Apache 2.0
