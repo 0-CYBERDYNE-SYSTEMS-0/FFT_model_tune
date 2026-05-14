@@ -10,12 +10,15 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 
-# Models (too large for git)
+# Models and training outputs (too large for git)
 models/
+output/
+*.gguf
 
 # Generated files
 dataset_index.pkl
 *.pkl
+uv.lock
 
 # OS
 .DS_Store
